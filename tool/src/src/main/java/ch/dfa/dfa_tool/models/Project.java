@@ -85,6 +85,7 @@ public class Project {
 
     public Project(String gitUrl) throws ParseException {
         this.gitUrl = gitUrl;
+        System.out.println(repositoryPath);
         this.repositoryPath = extractRepositoryName(gitUrl);
         GitHubAPIMetaData gitHubAPIMetaData = this.fetchGitHubAPIMetaData();
         mapGitHubAPIMetaDataToProject(gitHubAPIMetaData, this);
@@ -97,7 +98,7 @@ public class Project {
 
     private String extractRepositoryName(String gitUrl) {
         String gitUrl1 = gitUrl.replaceAll("https://github.com/", "");
-        String gitUrl2 = gitUrl1.replaceAll(".git", "");
+        String gitUrl2 = gitUrl1.replaceAll("\\.git$", "");
         return gitUrl2;
     }
 

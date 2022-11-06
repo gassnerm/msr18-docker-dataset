@@ -54,8 +54,8 @@ public class GitHubMinerService {
 
     public static JSONObject readJsonFromUrl2(String get) throws IOException, JSONException, InterruptedException {
         URL url = new URL(get);
-        String username = User;
-        String password = PW;
+        String username = "gassnerm";
+        String password = "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";
         URLConnection conn = url.openConnection();
         conn.setConnectTimeout(30000); // 30 seconds time out
 
@@ -63,9 +63,9 @@ public class GitHubMinerService {
 
         if (username != null && password != null) {
             System.out.println("Actual User (Request) :" + username);
-            String user_pass = username + ":" + password;
-            String encoded = Base64.encodeBase64String(user_pass.getBytes());
-            conn.setRequestProperty("Authorization", "Basic " + encoded);
+            String user_pass =  password;
+            //String encoded = Base64.encodeBase64String(user_pass.getBytes());
+            conn.setRequestProperty("Authorization", "Bearer " + user_pass);
         }
 
         boolean isConcurrent = true;
@@ -79,7 +79,7 @@ public class GitHubMinerService {
                 rd.close();
                 isConcurrent = false;
             } catch (Exception e) {
-                System.out.println(e);
+                System.out.println("Exception!" + e.getMessage());
                 if (e.getMessage().contains("401") && counter < 20) {
                     isConcurrent = true;
                     counter++;

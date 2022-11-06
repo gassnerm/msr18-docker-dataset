@@ -5,6 +5,7 @@ import ch.dfa.dfa_tool.models.commands.*;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,8 +59,10 @@ public class DockerParser {
 
     public Snapshot getParsedDockerfileObject(File rawDockerfile) throws IOException {
         dockerfile = new Snapshot();
+        //System.out.println(rawDockerfile.getPath());
         File fileToBeFlat = new File(rawDockerfile.getPath());
         File flatDockerfile = getFlatDockerFile(fileToBeFlat);
+        //printLines(flatDockerfile);
         doClassificationOfLines(flatDockerfile);
         assignToDockerObject(fileToBeFlat);
         return dockerfile;
@@ -81,23 +84,24 @@ public class DockerParser {
     }
 
     public boolean checkForInstruction(String line) {
-        boolean a = isContainExactWord(line, "FROM");
-        boolean b = isContainExactWord(line, "ADD");
-        boolean c = isContainExactWord(line, "COPY");
-        boolean d = isContainExactWord(line, "RUN");
-        boolean e = isContainExactWord(line, "LABEL");
-        boolean f = isContainExactWord(line, "ENV");
-        boolean g = isContainExactWord(line, "ARG");
-        boolean h = isContainExactWord(line, "VOLUME");
-        boolean i = isContainExactWord(line, "MAINTAINER");
-        boolean j = isContainExactWord(line, "HEALTHCHECK");
-        boolean k = isContainExactWord(line, "STOPSIGNAL");
-        boolean l = isContainExactWord(line, "EXPOSE");
-        boolean m = isContainExactWord(line, "CMD");
-        boolean n = isContainExactWord(line, "ENTRYPOINT");
-        boolean o = isContainExactWord(line, "ONBUILD");
-        boolean p = isContainExactWord(line, "USER");
-        boolean q = isContainExactWord(line, "WORKDIR");
+        String lineU = line.toUpperCase();
+        boolean a = isContainExactWord(lineU, "FROM");
+        boolean b = isContainExactWord(lineU, "ADD");
+        boolean c = isContainExactWord(lineU, "COPY");
+        boolean d = isContainExactWord(lineU, "RUN");
+        boolean e = isContainExactWord(lineU, "LABEL");
+        boolean f = isContainExactWord(lineU, "ENV");
+        boolean g = isContainExactWord(lineU, "ARG");
+        boolean h = isContainExactWord(lineU, "VOLUME");
+        boolean i = isContainExactWord(lineU, "MAINTAINER");
+        boolean j = isContainExactWord(lineU, "HEALTHCHECK");
+        boolean k = isContainExactWord(lineU, "STOPSIGNAL");
+        boolean l = isContainExactWord(lineU, "EXPOSE");
+        boolean m = isContainExactWord(lineU, "CMD");
+        boolean n = isContainExactWord(lineU, "ENTRYPOINT");
+        boolean o = isContainExactWord(lineU, "ONBUILD");
+        boolean p = isContainExactWord(lineU, "USER");
+        boolean q = isContainExactWord(lineU, "WORKDIR");
         if (a || b || c || d || e || f || g || h || i || j || k || l || m || n || o || p || q) {
             return true;
         } else {
@@ -181,7 +185,10 @@ public class DockerParser {
     }
 
     public File getFlatDockerFile(File dockerFile) throws IOException {
+
+       
         File flatDockerfile = new File(dockerFile.getParentFile().getPath() + "/DockerFileFlat");
+        //System.out.println(flatDockerfile);
         BufferedWriter writer = new BufferedWriter(new FileWriter(flatDockerfile));
         FileInputStream fis = new FileInputStream(dockerFile);
         BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
@@ -190,8 +197,15 @@ public class DockerParser {
         boolean hc = false;
         boolean concatFlag = false;
         while ((line = reader.readLine()) != null) {
+            //System.out.println(line);
+               
             if (doesLineHaveAnInstruction(line) && line.contains(" \\")) {
-                newLine = "";
+
+                if(!concatFlag)
+                {
+                    newLine = "";
+                }
+
                 newLine += line;
                 concatFlag = true;
             } else if (line.contains(" \\") && concatFlag) {
@@ -232,41 +246,42 @@ public class DockerParser {
     }
 
     public static String getInstructionInString(String line) {
-        if (line.contains("ADD")) {
+        String lineU = line.toUpperCase();
+        if (lineU.contains(" ADD ") | line.matches("^ADD .*")) {
             return "ADD";
-        } else if (line.contains("FROM")) {
+        } else if (lineU.contains(" FROM ") | line.matches("^FROM .*")) {
             return "FROM";
-        } else if (line.contains("CMD")) {
+        } else if (lineU.contains(" CMD ") | line.matches("^CMD .*")) {
             return "CMD";
-        } else if (line.contains("COPY")) {
+        } else if (lineU.contains(" COPY")| line.matches("^COPY .*")) {
             return "COPY";
-        } else if (line.contains("ENTRYPOINT")) {
+        } else if (lineU.contains(" ENTRYPOINT ")| line.matches("^ENTRYPOINT .*")) {
             return "ENTRYPOINT";
-        } else if (line.contains("ENV")) {
+        } else if (lineU.contains(" ENV ")| line.matches("^ENV .*")) {
             return "ENV";
-        } else if (line.contains("EXPOSE")) {
+        } else if (lineU.contains(" EXPOSE ")| line.matches("^EXPOSE .*")) {
             return "EXPOSE";
-        } else if (line.contains("FROM")) {
+        } else if (lineU.contains(" FROM ")| line.matches("^FROM .*")) {
             return "FROM";
-        } else if (line.contains("HEALTHCHECK")) {
+        } else if (lineU.contains(" HEALTHCHECK ")| line.matches("^HEALTHCHECK .*")) {
             return "HEALTHCHECK";
-        } else if (line.contains("INSTRUCTION")) {
+        } else if (lineU.contains(" INSTRUCTION ")| line.matches("^INSTRUCTION .*")) {
             return "INSTRUCTION";
-        } else if (line.contains("LABEL")) {
+        } else if (lineU.contains(" LABEL ")| line.matches("^LABEL .*")) {
             return "LABEL";
-        } else if (line.contains("MAINTAINER")) {
+        } else if (lineU.contains(" MAINTAINER ")| line.matches("^MAINTAINER .*")) {
             return "MAINTAINER";
-        } else if (line.contains("ONBUILD")) {
+        } else if (lineU.contains(" ONBUILD ")| line.matches("^ONBUILD .*")) {
             return "ONBUILD";
-        } else if (line.contains("RUN")) {
+        } else if (lineU.contains(" RUN ")| line.matches("^RUN .*")) {
             return "RUN";
-        } else if (line.contains("STOPSIGNAL")) {
+        } else if (lineU.contains(" STOPSIGNAL ")| line.matches("^STOPSIGNAL .*")) {
             return "STOPSIGNAL";
-        } else if (line.contains("USER")) {
+        } else if (lineU.contains(" USER ")| line.matches("^USER .*")) {
             return "USER";
-        } else if (line.contains("VOLUME")) {
+        } else if (lineU.contains(" VOLUME ")| line.matches("^VOLUME .*")) {
             return "VOLUME";
-        } else if (line.contains("WORKDIR")) {
+        } else if (lineU.contains(" WORKDIR ")| line.matches("^WORKDIR .*")) {
             return "WORKDIR";
         } else {
             return "";
@@ -274,44 +289,45 @@ public class DockerParser {
     }
 
     public static boolean doesLineHaveAnInstruction(String line) {
-        if (line.contains("ADD")) {
+        String lineU = line.toUpperCase();
+        if (lineU.contains(" ADD ") | line.matches("^ADD .*")) {
             return true;
-        } else if (line.contains("FROM")) {
+        } else if (lineU.contains(" FROM ") | line.matches("^FROM .*")) {
             return true;
-        } else if (line.contains("CMD")) {
+        } else if (lineU.contains(" CMD ") | line.matches("^CMD .*")) {
             return true;
-        } else if (line.contains("COPY")) {
+        } else if (lineU.contains(" COPY")| line.matches("^COPY .*")) {
             return true;
-        } else if (line.contains("ENTRYPOINT")) {
+        } else if (lineU.contains(" ENTRYPOINT ")| line.matches("^ENTRYPOINT .*")) {
             return true;
-        } else if (line.contains("ENV")) {
+        } else if (lineU.contains(" ENV ")| line.matches("^ENV .*")) {
             return true;
-        } else if (line.contains("EXPOSE")) {
+        } else if (lineU.contains(" EXPOSE ")| line.matches("^EXPOSE .*")) {
             return true;
-        } else if (line.contains("FROM")) {
+        } else if (lineU.contains(" FROM ")| line.matches("^FROM .*")) {
             return true;
-        } else if (line.contains("HEALTHCHECK")) {
+        } else if (lineU.contains(" HEALTHCHECK ")| line.matches("^HEALTHCHECK .*")) {
             return true;
-        } else if (line.contains("INSTRUCTION")) {
+        } else if (lineU.contains(" INSTRUCTION ")| line.matches("^INSTRUCTION .*")) {
             return true;
-        } else if (line.contains("LABEL")) {
+        } else if (lineU.contains(" LABEL ")| line.matches("^LABEL .*")) {
             return true;
-        } else if (line.contains("MAINTAINER")) {
+        } else if (lineU.contains(" MAINTAINER ")| line.matches("^MAINTAINER .*")) {
             return true;
-        } else if (line.contains("ONBUILD")) {
+        } else if (lineU.contains(" ONBUILD ")| line.matches("^ONBUILD .*")) {
             return true;
-        } else if (line.contains("RUN")) {
+        } else if (lineU.contains(" RUN ")| line.matches("^RUN .*")) {
             return true;
-        } else if (line.contains("STOPSIGNAL")) {
+        } else if (lineU.contains(" STOPSIGNAL ")| line.matches("^STOPSIGNAL .*")) {
             return true;
-        } else if (line.contains("USER")) {
+        } else if (lineU.contains(" USER ")| line.matches("^USER .*")) {
             return true;
-        } else if (line.contains("VOLUME")) {
+        } else if (lineU.contains(" VOLUME ")| line.matches("^VOLUME .*")) {
             return true;
-        } else if (line.contains("WORKDIR")) {
+        } else if (lineU.contains(" WORKDIR ")| line.matches("^WORKDIR .*")) {
             return true;
 
-        } else if (line.startsWith("#")) {
+        } else if (lineU.startsWith("#")) {
             return true;
         } else {
             return false;
@@ -321,12 +337,16 @@ public class DockerParser {
     public void doClassificationOfLines(File file) throws IOException {
         try (Stream<String> lines = Files.lines(file.toPath(), Charset.defaultCharset())) {
             lines.forEachOrdered(line -> {
+                
                 String instruction = getInstructionInString(line);
+                
                 if(doesLineHaveAnInstruction(line)){
                     if ((isSingleInstruction(instruction))) {
                             getInstructionOneOfOne(line);
                     } else {
+                        
                         if(areMultipleInstructionsInOneLineAllowed(line)){
+                            System.out.println("Lines: " + line + instruction);
                             getMultipleInstructionsInOneLine(line);
                         }else{
                             getInstructionOneOfMany(line);
@@ -340,19 +360,21 @@ public class DockerParser {
     }
 
     private boolean areMultipleInstructionsInOneLineAllowed(String instructionToCheck) {
-        if (instructionToCheck.contains("ENV")) {
+        //String instructionToCheckU = instructionToCheck.toUpperCase();
+        String instructionToCheckU = instructionToCheck;
+        if (instructionToCheckU.contains("ENV")) {
             return false;
-        } else if (instructionToCheck.contains("ADD")) {
+        } else if (instructionToCheckU.contains("ADD")) {
             return false;
-        } else if (instructionToCheck.contains("COPY")) {
+        } else if (instructionToCheckU.contains("COPY")) {
             return false;
-        } else if (instructionToCheck.contains("USER")) {
+        } else if (instructionToCheckU.contains("USER")) {
             return false;
-        } else if (instructionToCheck.contains("WORKDIR")) {
+        } else if (instructionToCheckU.contains("WORKDIR")) {
             return false;
-        } else if (instructionToCheck.contains("ARG")) {
+        } else if (instructionToCheckU.contains("ARG")) {
             return false;
-        } else if (instructionToCheck.contains("ONBUILD")) {
+        } else if (instructionToCheckU.contains("ONBUILD")) {
             return false;
         } else {
             return true;
@@ -360,15 +382,16 @@ public class DockerParser {
     }
 
     public boolean isSingleInstruction(String instructionToCheck) {
-        if (instructionToCheck.contains("FROM")) {
+        String instructionToCheckU = instructionToCheck.toUpperCase();
+        if (instructionToCheckU.contains("FROM")) {
             return true;
-        } else if (instructionToCheck.contains("CMD")) {
+        } else if (instructionToCheckU.contains("CMD")) {
             return true;
-        } else if (instructionToCheck.contains("ENTRYPOINT")) {
+        } else if (instructionToCheckU.contains("ENTRYPOINT")) {
             return true;
-        } else if (instructionToCheck.contains("HEALTHCHECK")) {
+        } else if (instructionToCheckU.contains("HEALTHCHECK")) {
             return true;
-        } else if (instructionToCheck.contains("STOPSIGNAL")) {
+        } else if (instructionToCheckU.contains("STOPSIGNAL")) {
             return true;
         } else {
             return false;
@@ -397,7 +420,7 @@ public class DockerParser {
             command = "";
         }
 
-        switch (instruction) {
+        switch (instruction.toUpperCase()) {
             case "FROM":
                 return (T) parseFromInstruction(command);
             case "CMD":
@@ -406,8 +429,8 @@ public class DockerParser {
                 return (T) (parseAndGetEntryPointInstruction(command));
             case "STOPSIGNAL":
                 return (T) (parseAndGetStopSignalInstruction(command));
-            case "HEALTHCHECK":
-                return (T) (parseAndGetHealthCheckInstruction(command));
+            //case "HEALTHCHECK":
+            //    return (T) (parseAndGetHealthCheckInstruction(command));
         }
         return null;
     }
@@ -433,14 +456,14 @@ public class DockerParser {
             command = "";
         }
 
-
-        switch (instruction) {
+        
+        switch (instruction.toUpperCase()) {
             case "RUN":
                 return (List<T>) parseAndGetRunInstruction(command);
             case "EXPOSE":
                 return (List<T>) parseAndGetExposeInstruction(command);
-            case "LABEL":
-                return (List<T>) parseAndGetLabelInstruction(command);
+            //case "LABEL":
+            //    return (List<T>) parseAndGetLabelInstruction(command);
             case "VOLUME":
                 return (List<T>) parseAndGetVolumeInstruction(command);
         }
@@ -468,7 +491,7 @@ public class DockerParser {
             command = "";
         }
 
-        switch (instruction) {
+        switch (instruction.toUpperCase()) {
             case "ENV":
                 return (T) parseAndGetEnvInstruction(command);
             case "ADD":
@@ -489,14 +512,39 @@ public class DockerParser {
 
     public List<Expose> parseAndGetExposeInstruction(String ports) {
         List<Expose> exposes = new ArrayList<>();
+        
         if (ports.matches(".*\\d+.*")) {
+            
             String[] parts = ports.split(" ");
+            
+
             for (int i = 0; i < parts.length; i++) {
-                exposes.add(new Expose(dockerfile, parts[i]));
+                
+                if (parts[i].matches(".*:.*")) {
+               
+                    String bindingPort = parts[0].replaceAll(":.*","");
+                    exposes.add(new Expose(dockerfile, bindingPort));
+    
+                } else if (parts[i].matches(".*-.*")){
+                    String bindingPort = parts[0].replaceAll("-.*","");
+                    exposes.add(new Expose(dockerfile, bindingPort));
+                } else if (parts[i].matches(".*,.*")){
+                    String bindingPort = parts[0].replaceAll(",.*","");
+                    exposes.add(new Expose(dockerfile, bindingPort));
+                } else if (parts[i].matches(".*#.*")){
+                    String bindingPort = parts[0].replaceAll("#.*","");
+                    exposes.add(new Expose(dockerfile, bindingPort));
+                } else if (parts[i].matches(".*\t.*")){
+                    String bindingPort = parts[0].replaceAll("\t.*","");
+                    exposes.add(new Expose(dockerfile, bindingPort));
+                }
             }
         }
-        this.exposes = exposes;
-        return exposes;
+        if (exposes.size() != 0) {
+            this.exposes = exposes;
+            return exposes;
+        }
+        return null;
     }
 
     public Instruction parseAndGetEntryPointInstruction(String command) {
@@ -518,6 +566,10 @@ public class DockerParser {
                     params.add(matches.get(i));
                 }
             }
+            if (executable == null) {
+                return null;
+            }
+
         } else {
             String[] parts = command.split(" ");
 
@@ -568,7 +620,7 @@ public class DockerParser {
             }
         }
 
-        if (instruction.equals("ADD")) {
+        if (instruction.toUpperCase().equals("ADD")) {
             adds.add(new Add(dockerfile, source, destinatation));
             return new Add(dockerfile, source, destinatation);
         }
@@ -604,7 +656,7 @@ public class DockerParser {
                 }
             }
         }
-        if (instruction.equals("COPY")) {
+        if (instruction.toUpperCase().equals("COPY")) {
             copies.add(new Copy(dockerfile, source, destinatation));
             return new Copy(dockerfile, source, destinatation);
         }
@@ -626,12 +678,30 @@ public class DockerParser {
     }
 
     public List<Label> parseAndGetLabelInstruction(String command) {
+        System.out.println(command);
         List<Label> labels = new ArrayList<>();
-        String[] parts = command.split(" ");
+        String[] parts = command.split(" ",2);
+
+        System.out.println(parts);
+
         for (int i = 0; i < parts.length; i++) {
-            String[] split = parts[i].split("=");
-            String key = split[0];
-            String value = split[1];
+            String value = null;
+            String key = null; 
+            String[] split = null;
+
+            
+            if (parts[i].contains("=")) {
+
+                split = parts[i].split("=");
+                key = split[0];
+                value = split[1];
+
+            } else if (parts.length >= 2){
+
+                key = parts[0];
+                value = parts[1];
+
+            }
 
             Pattern p = Pattern.compile("\"(.*?)\"");
             Matcher m = p.matcher(value);
@@ -651,6 +721,7 @@ public class DockerParser {
         String instruction = getInstructionInString(command);
 
         String[] split = command.split(" ", 2);
+
         if (command.startsWith(instruction)) {
             hc = new Healthcheck(dockerfile, instruction, split[1]);
         } else {
@@ -731,25 +802,43 @@ public class DockerParser {
     }
 
     public List<Run> parseAndGetRunInstruction(String commandx) {
+
+        boolean runOverMulipleLines = false;
+
         List<Run> runsLocal = new ArrayList<>();
         String command = commandx;
         if (commandx.contains("(") && !commandx.contains("echo ")) {
+            // Find all commands in parentehesis
             Matcher m = Pattern.compile("\\(([^)]+)\\)").matcher(commandx);
             while (m.find()) {
                 command = m.group(1);
             }
         }
 
+        //if (command.contains("\\$")) {
+        //    String content = Files.readString(path, StandardCharsets.UTF_8);
+        //    runOverMulipleLines = true;
+        //}
+
+        
+        System.out.println("Ich bin der run" + commandx);
         String[] runentry = command.split(" && ");
+        
 
         for (String run : runentry) {
             String executable = "";
             List<String> params = new ArrayList<>();
 
-            if (commandx.contains("echo")) {
+            if (run.contains("echo")) {
                 executable = "echo";
-                String arr[] = commandx.split(" ", 2);
-                for (int i = 0; i < arr.length; i++) {
+                String arr[] = run.split(" ", 2);
+                int i = 0;
+
+                if (arr[0].equals("echo")){
+                    i = 1;
+                }
+
+                for (; i < arr.length; i++) {
                     params.add(arr[i]);
                 }
 

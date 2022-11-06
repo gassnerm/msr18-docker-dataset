@@ -1,3 +1,5 @@
+package ch.dfa.dfa_tool.models;
+
 import ch.dfa.dfa_tool.models.Owner;
 
 /**

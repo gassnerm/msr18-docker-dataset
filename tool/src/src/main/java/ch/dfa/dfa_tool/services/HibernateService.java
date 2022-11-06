@@ -92,7 +92,7 @@ public class HibernateService {
                 transaction.rollback();
             }
             // Print the Exception
-            ex.printStackTrace();
+            //ex.printStackTrace();
         } finally {
             // Close the session
             session.close();

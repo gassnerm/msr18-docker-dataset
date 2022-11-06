@@ -45,7 +45,7 @@ public class Snapshot {
     @JoinColumn(name = "DOCK_ID")
     private Dockerfile dockerfile;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, mappedBy = "snapshot", orphanRemoval = true)
+    @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, mappedBy = "snapshot", orphanRemoval = true)
     public List<ChangedFile> filesChangedWithinCommit = new ArrayList<>();
 
     @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.ALL}, mappedBy = "snapshot", orphanRemoval = true)
@@ -151,13 +151,40 @@ public class Snapshot {
     @Column(name = "change_type")
     private String changeType;
 
+    public String getChangeType() {
+        return changeType;
+    }
+
+    public void setChangeType(String changeType) {
+        this.changeType = changeType;
+    }
+
+
     // TODO: assign those values
     @Column(name = "del")
     private int del;
 
+    public int getDel() {
+        return del;
+    }
+
+    public void setDel(int del) {
+        this.del = del;
+    }
+
+    
     // TODO: assign those values
     @Column(name = "ins")
     private int ins;
+
+    public int setIns() {
+        return ins;
+    }
+
+    public void setIns(int ins) {
+        this.ins = ins;
+    }
+    
 
     @Column(name = "image_is_automated")
     private Boolean imageIsAutomated;
@@ -204,6 +231,7 @@ public class Snapshot {
         if (healthCheck != null) {
             counter++;
         }
+        //System.out.println(runs.size() + " " + labels.size() + " " + envs.size() + " " + exposes.size()  + " " + adds.size() + copies.size() + volumes.size() + users.size() + workDirs.size() + args.size() + onBuilds.size() + counter);
         return runs.size() +
                 labels.size() +
                 envs.size() +
@@ -215,6 +243,7 @@ public class Snapshot {
                 workDirs.size() +
                 args.size() +
                 onBuilds.size() + counter;
+
     }
 
     public void extractCommit() {

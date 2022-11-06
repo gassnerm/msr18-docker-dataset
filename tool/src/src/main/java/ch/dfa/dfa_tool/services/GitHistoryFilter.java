@@ -11,6 +11,8 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 
+import ch.dfa.dfa_tool.models.Renamedpath;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -22,14 +24,36 @@ public class GitHistoryFilter {
 
     public List<RevCommit> getDockerfileCommitHistory(String localPath, String dockerPath) throws IOException, NoHeadException, GitAPIException {
         Git git = new Git(getRepository(localPath));
-        List<RevCommit> logs = new ArrayList<>();
-        Iterable<RevCommit> iterableLogs = git.log().addPath(dockerPath).call();
-
+        LogFollowCommand lF = new LogFollowCommand(getRepository(localPath), dockerPath);
+    
+        Iterable<RevCommit> iterableLogs = null;
+        iterableLogs = git.log().addPath(dockerPath).call();
         ArrayList<RevCommit> copy = toArrayList(iterableLogs.iterator());
+        ArrayList<RevCommit> copyRe = null;
+        int indexRe = 0;
+        Renamedpath renamedpath;
+
+        //try{
+            
+        //    Iterable<RevCommit> iterableLogsRe = git.log().addPath(lF.getNewpath()).call();
+        //    System.out.println("Find renamed Dockerfiles in Dockerpath adjusted path.");
+        //    copyRe = toArrayList(iterableLogsRe.iterator());
+        //    indexRe = copyRe.size();
+        //    copyRe.remove(0);
+        //    copy.addAll(copy.size(),copyRe);
+        //    copy.forEach(x -> System.out.println(x.toString()));
+            //renamedpath = new Renamedpath(copy.size(), lF.getNewpath(), dockerPath, copy);
+
+        //}catch(NullPointerException e){
+        //    System.out.println("No renamed Dockerfile in Dockerpath found use find path.");
+        //    //renamedpath = new Renamedpath(0, "", dockerPath, copy);
+        //}
+        
         git.close();
 
         return copy;
     }
+    
     public static <RevCommit> ArrayList<RevCommit> toArrayList(final Iterator<RevCommit> iterator) {
         return StreamSupport
                 .stream(
@@ -80,7 +104,7 @@ public class GitHistoryFilter {
         {
             e.printStackTrace();
         }
-        System.out.println(out.toString());
+        //System.out.println(out.toString());
     }
 
     public void printDiffTest2(Repository repository, ObjectId oldHead, ObjectId head) throws IOException {
@@ -127,7 +151,7 @@ public class GitHistoryFilter {
             df.format(diff);
             diff.getOldId();
             String diffText = out.toString("UTF-8");
-            System.out.println(diffText);
+            //System.out.println(diffText);
             out.reset();
         }
     }

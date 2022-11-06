@@ -6,6 +6,8 @@ import com.gitblit.utils.JGitUtils;
 import com.google.common.collect.Lists;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -40,20 +42,50 @@ public class CommitProcessor {
         }
         return list;
     }
-
-    public List<ChangedFile> getChangedFilesWithinCommit(RevCommit revCommit, Repository repository, int rangeSize, int range_index, Git git, String repoPath) throws IOException, GitAPIException {
-       // System.out.println("6.3.1 get Changed Files of a Commit (getChangedFilesWithinCommit) with the range: " + +range_index + " & rangeSize: " + rangeSize);
+    public ChangedFile getDockerfileOfSnapshot(RevCommit revCommit,Repository repository, Git git, String dockerpath) throws MissingObjectException, IncorrectObjectTypeException, IOException {
         RevWalk walk = new RevWalk(repository);
         walk.reset();
         git.close();
         RevCommit dockerCommit = walk.parseCommit(revCommit.getId());
-        //Iterable<RevCommit> commits = git.log().all().call();
+        List<PathModel.PathChangeModel> files = JGitUtils.getFilesInCommit(repository, dockerCommit);
+        for (PathModel.PathChangeModel file : files){
+            
+            if (file.name.equals(dockerpath)) {
+                
+                System.out.println(file.name + " == " + dockerpath);
+                ChangedFile changedFile = new ChangedFile(
+                    file.path,
+                    "",
+                    "",
+                    "",
+                    "",
+                    file.mode, file.changeType, file.deletions, file.insertions,
+                    0, 0, file.commitId, dockerpath);
+
+                    return changedFile;
+                    
+            }
+        }
+        return null;
+
+    }
+    public List<ChangedFile> getChangedFilesWithinCommit(RevCommit revCommit, Repository repository, int rangeSize,
+            int range_index, Git git, String repoPath) throws IOException, GitAPIException {
+        // System.out.println("6.3.1 get Changed Files of a Commit
+        // (getChangedFilesWithinCommit) with the range: " + +range_index + " &
+        // rangeSize: " + rangeSize);
+        RevWalk walk = new RevWalk(repository);
+        walk.reset();
+        git.close();
+        RevCommit dockerCommit = walk.parseCommit(revCommit.getId());
+        
+        // Iterable<RevCommit> commits = git.log().all().call();
         // List<RevCommit> xcommits = toList(commits);
         git.close();
         walk.reset();
 
         List<Ref> branches = git.branchList().call();
-
+        
         List<RevCommit> commitsList = null;
         for (Ref branch : branches) {
             String branchName = branch.getName();
@@ -62,13 +94,11 @@ public class CommitProcessor {
 
         }
 
-
         List<RevCommit> dockys = new ArrayList<>();
         RevCommit foundCommit = null;
         List<PathModel.PathChangeModel> files = new ArrayList<>();
         boolean dockyFound = false;
-        finder:
-        if (range_index < 0) {
+        finder: if (range_index < 0) {
             int index = 0;
             for (RevCommit commit : commitsList) {
                 if (commit.getId().equals(dockerCommit.getId())) {
@@ -76,9 +106,21 @@ public class CommitProcessor {
                     while (!dockyFound) {
                         if (index == range_index) {
                             for (RevCommit docky : dockys) {
-                                List<PathModel.PathChangeModel> foundFiles = JGitUtils.getFilesInCommit(repository, docky);
+                                List<PathModel.PathChangeModel> foundFiles = null;
+                                try {
+                                    System.out.println("Ich bin unter commit für ein changedFile :" + docky );
+                                    for (RevCommit docky_T : dockys) {
+                                        System.out.println("Das sind Commits" +  docky_T);
+                                    }
+                                    foundFiles = JGitUtils.getFilesInCommit(repository, docky);
+                                } catch (Exception e) {
+                                    System.out.println(" Ich bin der 1 Missing Blob: " + docky );
+                                    System.exit(1);
+                                }
                                 for (PathModel.PathChangeModel found : foundFiles) {
+                                    
                                     files.add(found);
+                                    
                                 }
                             }
                             dockyFound = true;
@@ -96,28 +138,46 @@ public class CommitProcessor {
                         }
                         index--;
                     }
-                    //Start with: git://github.com/deepaklukose/grpc.git + deepaklukose/grpc + tools/dockerfile/distribtest/csharp_wheezy_x64/Dockerfile
+                    // Start with: git://github.com/deepaklukose/grpc.git + deepaklukose/grpc +
+                    // tools/dockerfile/distribtest/csharp_wheezy_x64/Dockerfile
                 }
             }
         } else if (range_index > 0) {
 
+            System.out.println("Ich bin über 0" + dockerCommit + " in Repo: " + repository);
             int index = 0;
             dockys.add(dockerCommit);
             while (!dockyFound) {
                 if (index == range_index) {
-
-                    for (RevCommit docky : dockys) {
+                    try
+                        {
+                        for (RevCommit docky : dockys) {
+                        //System.out.println("Commit: " + docky);
                         List<PathModel.PathChangeModel> foundFiles = JGitUtils.getFilesInCommit(repository, docky);
-                        for (PathModel.PathChangeModel found : foundFiles) {
-                            files.add(found);
+                        
+                        
+                            for (PathModel.PathChangeModel found : foundFiles) 
+                            {
+                                files.add(found);
+                            }
                         }
-                    }
+
                     dockyFound = true;
+
+                    }catch(Exception e)
+
+                    {
+                    for (RevCommit docky_T : dockys) {
+                        System.out.println("Das sind Commits" +  docky_T);
+                    }
+                    
+                    System.out.println(e.getStackTrace());
+                    System.exit(1);
+                    }
                 } else {
 
                     List<RevCommit> tempDockys = new ArrayList<>();
-                    parent:
-                    for (RevCommit children : commitsList) {
+                    parent: for (RevCommit children : commitsList) {
                         for (int i = 0; i < children.getParentCount(); i++) {
                             RevCommit parent = children.getParents()[i];
                             for (RevCommit docky : dockys) {
@@ -130,7 +190,7 @@ public class CommitProcessor {
                             }
                         }
                     }
-                    if(tempDockys.size()==0){
+                    if (tempDockys.size() == 0) {
                         dockyFound = true;
                     }
                     dockys = tempDockys;
@@ -138,7 +198,16 @@ public class CommitProcessor {
             }
         } else {
             dockys.add(dockerCommit);
-            files = JGitUtils.getFilesInCommit(repository, dockerCommit);
+            try{
+                
+                System.out.println("Ich bin 0" + dockerCommit + " in Repo: " + repository);
+                files = JGitUtils.getFilesInCommit(repository, dockerCommit);
+
+            }catch(Exception mo)
+            {
+                System.out.println("Missing Blob from " + dockerCommit);
+            }
+
             foundCommit = dockys.get(0);
         }
 
@@ -150,6 +219,7 @@ public class CommitProcessor {
             String fileType = null;
             String filePath = null;
             String[] pathTokens = model.name.split("/");
+  
             if (pathTokens.length == 1) {
                 fullFileName = model.name;
                 filePath = "";
@@ -181,10 +251,11 @@ public class CommitProcessor {
                     fileType,
                     model.mode, model.changeType, model.deletions, model.insertions,
                     range_index, rangeSize, model.commitId, repoPath);
+            
+            System.out.println("Das ist das File:" + fullFileName + model.changeType + model.deletions + model.insertions);
             changedFiles.add(changedFile);
         }
         return changedFiles;
     }
+
 }
-
-

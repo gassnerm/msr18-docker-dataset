@@ -16,8 +16,8 @@ import java.nio.charset.Charset;
  */
 public class GitHubAPIData {
 
-    static public String User = null;
-    static public String PW = null;
+    static public String User = "gassnerm";
+    static public String PW = "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";
 
 
     public static GitHubAPIMetaData getGitHubRepository(String path){
@@ -61,9 +61,8 @@ public class GitHubAPIData {
 
         if (username != null && password != null){
             System.out.println("Actual User (Request) :" + User);
-            String user_pass = username + ":" + password;
-            String encoded = Base64.encodeBase64String( user_pass.getBytes() );
-            conn.setRequestProperty("Authorization", "Basic " + encoded);
+            String user_pass =password;
+            conn.setRequestProperty("Authorization","Bearer " + user_pass);
         }
 
         try {
@@ -86,9 +85,9 @@ public class GitHubAPIData {
         conn.setConnectTimeout(30000); // 30 seconds time out
 
         if (username != null && password != null){
-            String user_pass = username + ":" + password;
-            String encoded = Base64.encodeBase64String( user_pass.getBytes() );
-            conn.setRequestProperty("Authorization", "Basic " + encoded);
+            System.out.println("Actual User (Request) :" + User);
+            String user_pass =password;
+            conn.setRequestProperty("Authorization","Bearer " + user_pass);
         }
 
         String line = "";

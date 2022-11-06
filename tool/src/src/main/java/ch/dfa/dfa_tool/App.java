@@ -10,6 +10,8 @@ import lombok.Setter;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Repository;
@@ -46,28 +48,25 @@ public class App {
 
         App app = null;
 
-        if (args.length == 0) {
-            System.out.println("No Github Link provided. We will use now https://github.com/raiden-network/raiden as a demo");
-            app = new App("https://github.com/probr/probr-core");
-        } else if (args.length == 1) {
-            app = new App(args[0]);
-
-        } else if (args.length == 2) {
-            if(args[1].equals("-db")){
+        app = new App(args[0]);
+        //if (args.length == 0) {
+        //    System.out.println("No Github Link provided. We will use now https://github.com/raiden-network/raiden as a demo");
+        //    app = new App("https://github.com/probr/probr-core");
+        //} else if (args.length == 2) {
+        //    if(args[1].equals("-db")){
                 System.out.println("Make sure you have installed postgres and created a empty db with name 'dfa' port 5432, there should be also a user 'postgres' with password 'postgres'");
                 app.saveToDb = true;
-            }else if(args[1].equals("-json")){
+        //    }else if(args[1].equals("-json")){
                 System.out.println("You will find your json file in the root folder of this project");
-                app.printJson = true;
-            }
-            app = new App(args[0]);
-        }else if (args.length == 3) {
-            System.out.println("Hello" + args[1] + " :D");
-            app = new App(args[0], args[1], args[2]);
-        }
-
+        //        app.printJson = true;
+        //    }
+            
+        //}
+       
         if (!app.project.isForked()) {
             List<File> rawDockerfiles = app.getDockerFilesFromGitRepository(app.repoFolderName);
+
+            // System.out.println(rawDockerfiles.get(0).getAbsolutePath());
 
             List<Dockerfile> dockerfiles = app.getDockerfileObjectsFromRawDockerfiles(rawDockerfiles);
 
@@ -75,14 +74,27 @@ public class App {
                 dockerfile.setProject(app.project);
             }
             app.project.setDockerfiles(dockerfiles);
+            
+            if (dockerfiles.size() == 0) {
 
-            if(app.saveToDb){
+                System.out.println("Ńo Dockerfiles in Repo = No save in database adjsut matching string ?");
+            
+            }else if (app.saveToDb) {
+            
                 HibernateService.save(app.project);
+            
             }
-            createJsonFromProjectObjectAndPrint(app.project, app.printJson);
+            //createJsonFromProjectObjectAndPrint(app.project, app.printJson);
+
+            for (File dockerfile : rawDockerfiles) {
+                // System.out.print(dockerfile.getAbsolutePath());
+                // DockerLinter.getReportOfLinting(dockerfile);
+            }
+
             app.repository.close();
             app.git.close();
         }
+        
         System.exit(0);
     }
 
@@ -90,51 +102,67 @@ public class App {
         List<Dockerfile> dockerfiles = new ArrayList<>();
 
         for (File rawDockerfile : rawDockerfiles) {
+            System.out.println(rawDockerfile);
             Dockerfile dockerfile = getDockerfileObjectFromRawDockerfile(rawDockerfile);
-            dockerfiles.add(dockerfile);
+            
+            if (dockerfile != null) {
+                
+                dockerfiles.add(dockerfile);
+            }
         }
         return dockerfiles;
     }
 
-    public static void createJsonFromProjectObjectAndPrint(Project project, boolean printJson){
-            ObjectMapper mapper = new ObjectMapper();
+    public static void createJsonFromProjectObjectAndPrint(Project project, boolean printJson) {
+        ObjectMapper mapper = new ObjectMapper();
 
-
-            try {
-                // Convert object to JSON string and save into a file directly
-                if(printJson){
-                    mapper.writeValue(new File(project.getRepo_id()+".json"), project);
-                }
-
-                // Convert object to JSON string
-                String jsonInString = mapper.writeValueAsString(project);
-                System.out.println(jsonInString);
-
-                // Convert object to JSON string and pretty print
-                jsonInString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(project);
-                System.out.println(jsonInString);
-
-            } catch (JsonGenerationException e) {
-                e.printStackTrace();
-            } catch (JsonMappingException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            // Convert object to JSON string and save into a file directly
+            if (printJson) {
+                mapper.writeValue(new File(project.getRepo_id() + ".json"), project);
             }
+
+            // Convert object to JSON string
+            String jsonInString = mapper.writeValueAsString(project);
+            // System.out.println(jsonInString);
+
+            // Convert object to JSON string and pretty print
+            jsonInString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(project);
+            // System.out.println(jsonInString);
+
+        } catch (JsonGenerationException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
 
-    public Dockerfile getDockerfileObjectFromRawDockerfile(File rawDockerfile) throws IOException, GitAPIException, ParseException, InterruptedException {
+    public Dockerfile getDockerfileObjectFromRawDockerfile(File rawDockerfile)
+            throws IOException, GitAPIException, ParseException, InterruptedException {
         this.relativePathToDockerfile = getRelativePathToDockerFile(rawDockerfile.getPath());
+        System.out.println(repoFolderNameDotGit + "  " + relativePathToDockerfile );
         List<RevCommit> historyOfFile = getRevCommitsOfRawDockerfile(repoFolderNameDotGit, relativePathToDockerfile);
-
+        //LogFollowCommand lF = new LogFollowCommand(repository, relativePathToDockerfile);
+        
+        //String newPath = lF.getNewpath();
+        //int reIndex = 0;
+        //if(newPath != ""){
+        //    reIndex = lF.call().size();
+        //}
+        if (historyOfFile.size() != 0) {
         Dockerfile dockerfile = new Dockerfile();
         dockerfile.setProject(project);
         dockerfile.setRepo_id(project.getRepo_id());
         dockerfile.setDockerPath(rawDockerfile.getPath());
-        dockerfile.setFirstDockerCommitDate(DateExtractor.getUnixDateFromCommit(historyOfFile.get(historyOfFile.size() - 1)));
+        dockerfile.setFirstDockerCommitDate(
+                DateExtractor.getUnixDateFromCommit(historyOfFile.get(historyOfFile.size() - 1)));
         dockerfile.setCommits(historyOfFile.size());
-        //TODO: please activate this
-        // dockerfile.setViolatedRules(dockerfile.getViolatedRules());
+    
+
+        System.out.println("Dockerfile: " + dockerfile.getDockerPath());
+        dockerfile.setViolatedRules(dockerfile.getViolatedRules());
 
         Collections.reverse(historyOfFile);
 
@@ -144,12 +172,13 @@ public class App {
         }
 
         setDiffsBetweenSnapshots(snapshots);
-
+ 
         dockerfile.setDockerfileSnapshots(snapshots);
-
 
         return dockerfile;
     }
+    else return null;
+}
 
     public void setDiffsBetweenSnapshots(List<Snapshot> snapshots) {
         for (int i = 0; i < snapshots.size(); i++) {
@@ -172,23 +201,28 @@ public class App {
         }
     }
 
-    public List<RevCommit> getRevCommitsOfRawDockerfile(String repoFolderNameDotGit, String relativePathToDockerfile) throws IOException, GitAPIException {
-        GitHistoryFilter gitHistoryFilter = new GitHistoryFilter();
-        Repository repository = gitHistoryFilter.getRepository(repoFolderNameDotGit);
-        Git git = new Git(repository);
-        return gitHistoryFilter.getDockerfileCommitHistory(repoFolderNameDotGit, relativePathToDockerfile);
+    public List<RevCommit> getRevCommitsOfRawDockerfile(String repoFolderNameDotGit, String relativePathToDockerfile)
+    throws IOException, GitAPIException {
+    GitHistoryFilter gitHistoryFilter = new GitHistoryFilter();
+    Repository repository = gitHistoryFilter.getRepository(repoFolderNameDotGit);
+    Git git = new Git(repository);
+    return gitHistoryFilter.getDockerfileCommitHistory(repoFolderNameDotGit, relativePathToDockerfile);
     }
 
-
-    public List<Snapshot> getSnapshotsFromRevCommits(List<RevCommit> historyOfFile) throws IOException, GitAPIException {
-        List<Snapshot> snapshots = new ArrayList<>();
-        int index = 0;
-
-        for (RevCommit commit : historyOfFile) {
-            Snapshot snapshot = getFullSnapshotFromRevCommit(commit, index == 0, index, repository, git);
+public List<Snapshot> getSnapshotsFromRevCommits(List<RevCommit> historyOfFile)
+    throws IOException, GitAPIException {
+List<Snapshot> snapshots = new ArrayList<>();
+int index = 0;
+int remIndex = 0; 
+for (RevCommit commit : historyOfFile) {
+    Snapshot snapshot = getFullSnapshotFromRevCommit(commit, index == historyOfFile.size()-1-remIndex, index, repository, git);
+        if (!(snapshot == null)){
             snapshots.add(snapshot);
             index++;
-        }
+        } else { 
+            remIndex++; 
+        } 
+}
 
         for (int i = 0; i < snapshots.size(); i++) {
             Snapshot snapshot = snapshots.get(i);
@@ -206,25 +240,46 @@ public class App {
         return snapshots;
     }
 
-    public Snapshot getFullSnapshotFromRevCommit(RevCommit commit, boolean isCurrent, int index, Repository repository, Git git) throws IOException, GitAPIException {
+    public ChangedFile getChangedFileDockerfileFromSnapshot(RevCommit commit, Repository repository, Git git, String relativePathToDockerfile) throws MissingObjectException, IncorrectObjectTypeException, IOException
+    {
+        CommitProcessor commitProcessor = new CommitProcessor();
+        return commitProcessor.getDockerfileOfSnapshot(commit, repository, git, relativePathToDockerfile);
+
+    }
+
+    public Snapshot getFullSnapshotFromRevCommit(RevCommit commit, boolean isCurrent, int index, Repository repository,
+            Git git) throws IOException, GitAPIException {
+        System.out.println("Commit with Dockerfile:"  + commit);
+
+        
         File rawSnapshot = getDockerfileFromCommit(commit, repository, relativePathToDockerfile, repoFolderName);
-        boolean exist = rawSnapshot.exists();
+        if (!rawSnapshot.exists()){
+                System.out.println("Ich bin Null Commit." + commit);
+                return null;
+
+        } else {
         Snapshot snapshot = getSnapshotObjectFromRawSnapshot(rawSnapshot);
-
+            
         List<ChangedFile> changedFiles = getChangedFilesForCommit(commit);
-        for (ChangedFile changedFile : changedFiles) {
-            if (changedFile.dockerPath != null && changedFile.dockerPath.equals(relativePathToDockerfile)) {
-                snapshot.setChangeType(changedFile.changeType);
-                snapshot.setIns(changedFile.insertions);
-                snapshot.setDel(changedFile.deletions);
+        changedFiles.forEach(changedfile -> changedfile.setSnapshot(snapshot));
+        System.out.println("Ich bin kein null Commit." + commit);
+        ChangedFile Dockerfile  = getChangedFileDockerfileFromSnapshot(commit, repository, git, relativePathToDockerfile);
+        if (Dockerfile != null){
+            snapshot.setChangeType(Dockerfile.getChangeType());
+            snapshot.setIns(Dockerfile.getInsertions());
+            snapshot.setDel(Dockerfile.getDeletions());
+            snapshot.setFilesChangedWithinCommit(changedFiles);
             }
-        }
-
-        snapshot.setFilesChangedWithinCommit(changedFiles);
+            else 
+            {
+                return null;
+            }
 
         if (isCurrent) {
             snapshot.setCurrentDockerfile(true);
+            System.out.println("Ich bin current");
             if (snapshot.from != null) {
+                System.out.println("Ich bin from.");
                 snapshot.from.current = true;
             }
             if (snapshot.maintainer != null) {
@@ -296,8 +351,8 @@ public class App {
         snapshot.setRepoId(project.getRepo_id());
 
         return snapshot;
+        }
     }
-
     public List<ChangedFile> getChangedFilesForCommit(RevCommit commit) throws IOException, GitAPIException {
         List<ChangedFile> changedFiles = new ArrayList<>();
         int rangeSize = 6;
@@ -327,21 +382,22 @@ public class App {
     }
 
 
-    public List<File> getDockerFilesFromGitRepository(String repoPath) {
+ public List<File> getDockerFilesFromGitRepository(String repoPath) {
         File root = new File(repoPath);
-        String fileName = "Dockerfile";
+        String fileName = "^.*Dockerfile$";
         List<File> rawDockerfiles = new ArrayList<>();
         try {
             boolean recursive = true;
 
             Collection files = FileUtils.listFiles(root, null, recursive);
 
-            for (Iterator iterator = files.iterator(); iterator.hasNext(); ) {
+            for (Iterator iterator = files.iterator(); iterator.hasNext();) {
                 File file = (File) iterator.next();
-                if (file.getName().equals(fileName)) {
+                if (file.getName().matches(fileName)) {
                     rawDockerfiles.add(file);
                 }
             }
+        return rawDockerfiles;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -353,52 +409,68 @@ public class App {
         return absolutePath.replace("\\", "/").replace(repoFolderName, "").replaceFirst("/", "");
     }
 
-    public File getDockerfileFromCommit(RevCommit revCommit, Repository repository, String dockerPath, String localPath) throws IOException {
-        // a RevWalk allows to walk over commits based on some filtering that is defined
-        //  System.out.println("6.1 Find File of Commit (getDockerfileFromCommit)");
-        Snapshot snapshot = null;
-        File tempDockferile = null;
-        try (RevWalk revWalk = new RevWalk(repository)) {
-            RevCommit commit = revWalk.parseCommit(revCommit.getId());
-            // and using commit's tree find the path
-            RevTree tree = commit.getTree();
+    public File getDockerfileFromCommit(RevCommit revCommit, Repository repository, String dockerPath, String localPath)
+    throws IOException {
+// a RevWalk allows to walk over commits based on some filtering that is defined
+System.out.println("6.1 Find File of Commit (getDockerfileFromCommit)");
 
-            String tempname = null;
-            String filename = null;
-            // now try to find a specific file
-            try (TreeWalk treeWalk = new TreeWalk(repository)) {
-                treeWalk.addTree(tree);
-                treeWalk.setRecursive(true);
-                treeWalk.setFilter(PathFilter.create(dockerPath));
+Snapshot snapshot = null;
+File tempDockferile = null;
+try (RevWalk revWalk = new RevWalk(repository)) {
+    RevCommit commit = revWalk.parseCommit(revCommit.getId());
+    // and using commit's tree find the path
+    RevTree tree = commit.getTree();
+    
+    //System.out.println(revWalk);
+    //System.out.println(commit);
+    //System.out.println(tree);
+    //System.out.println(revCommit);
+    //System.out.println(dockerPath);
+
+
+    String tempname = null;
+    String filename = null;
+    // now try to find a specific file
+    try (TreeWalk treeWalk = new TreeWalk(repository)) {
+
+        treeWalk.addTree(tree);
+        //System.out.println(treeWalk.getDepth());
+            
+        treeWalk.setRecursive(true);
+        treeWalk.setFilter(PathFilter.create(dockerPath));
+        
                 if (!treeWalk.next()) {
-
-                    // return snapshot = getDockerFile(localPath, dockerPath, tempname);
-                    throw new IllegalStateException("Did not find expected file 'Dockerfile'");
-                }
-                ObjectId objectId = treeWalk.getObjectId(0);
-                ObjectLoader loader = repository.open(objectId);
-
-                // and then one can the loader to read the file
-                Random ran = new Random();
-                filename = "tempDock";
-                tempname = localPath + "/" + filename;
-                tempDockferile = new File(tempname);
-                FileOutputStream fop = new FileOutputStream(tempDockferile);
-                loader.copyTo(fop);
-                // fop.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            revWalk.dispose();
-            //  System.out.println("6.2 Create Snapshot from File (getDockerfileFromCommit)");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            return tempDockferile;
-
+                    return tempDockferile = new File("null");
+                          
         }
+
+        ObjectId objectId = treeWalk.getObjectId(0);
+        ObjectLoader loader = repository.open(objectId);
+        //System.out.println(objectId.name());
+        // and then one can the loader to read the file
+        Random ran = new Random();
+        filename = "tempDock";
+        tempname = localPath + "/" + filename;
+        //System.out.println(tempname);
+        tempDockferile = new File(tempname);
+        FileOutputStream fop = new FileOutputStream(tempDockferile);
+        loader.copyTo(fop);
+        // fop.close();
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+    revWalk.dispose();
+    // System.out.println("6.2 Create Snapshot from File
+    // (getDockerfileFromCommit)");
+
+   
+    return tempDockferile;
+} catch (Exception e) {
+    e.printStackTrace();
+} 
+    return tempDockferile = new File("null");
+
+}
 
     public void init(String gitUrl) throws Exception {
         this.setProject(new Project(gitUrl));
@@ -435,5 +507,3 @@ public class App {
         return project;
     }
 }
-
-

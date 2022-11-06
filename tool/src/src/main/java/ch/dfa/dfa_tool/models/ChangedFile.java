@@ -1,6 +1,9 @@
 package ch.dfa.dfa_tool.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
+
 import org.eclipse.jgit.diff.DiffEntry;
 
 import javax.persistence.*;
@@ -8,8 +11,11 @@ import javax.persistence.*;
 /**
  * Created by salizumberi-laptop on 21.11.2016.
  */
+
 @Entity
 @Table(name = "changed_files")
+@Getter
+@Setter
 public class ChangedFile {
 
     @Id
@@ -18,11 +24,10 @@ public class ChangedFile {
     @Column(name="CHANGEDFILE_ID", unique=true, nullable=false)
     public long id;
 
-
     @JsonIgnore
     @ManyToOne
     @JoinColumn(name ="SNAP_ID")
-    Snapshot snapshot;
+    public Snapshot snapshot;
 
     @Column(name = "path", length = 1024)
     public String filePath;
@@ -67,7 +72,7 @@ public class ChangedFile {
     public ChangedFile(String path, String fullFileName, String fileName, String filePath, String fileType,
                        int mode, DiffEntry.ChangeType changeType, int deletions, int insertions, int rangeIndex, int rangeSize,
                        String commitId, String repo_name) {
-        this.dockerPath = dockerPath;
+        this.dockerPath = path;
         this.fullFileName = fullFileName;
         this.fileName = fileName;
         this.fileType = fileType;
